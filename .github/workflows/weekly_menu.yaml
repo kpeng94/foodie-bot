@@ -4,7 +4,7 @@ name: Send Weekly Menu
 on:
   # Runs at 23:34 AM UTC every Sunday
   schedule:
-    - cron: '34 23 * * 0'
+    - cron: '47 23 * * 0'
   
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
