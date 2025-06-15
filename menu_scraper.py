@@ -10,16 +10,17 @@ from selenium.webdriver.support import expected_conditions as EC
 def get_weekly_menu():
     """
     Scrapes foodie.earth for the entire week's menu.
-    Returns a single, formatted string containing the menu for all available days.
     """
     url = "https://foodie.earth/guest"
     
-    # --- Selenium Setup (remains the same) ---
+    # --- UPDATED: More robust Selenium options ---
     chrome_options = Options()
+    chrome_options.add_argument("--headless=new") # Use the new, more stable headless mode
     chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu") # Often recommended for headless
     chrome_options.add_argument("--window-size=1920,1080")
+    # --------------------------------------------
 
     driver = webdriver.Chrome(options=chrome_options)
     print("Selenium driver initialized. Navigating to page...")
@@ -28,14 +29,13 @@ def get_weekly_menu():
         driver.get(url)
         print("Waiting for dynamic content to load...")
         wait = WebDriverWait(driver, 20)
-        # Wait for the main menu container to ensure the page is ready
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "menu-days-list")))
         
         print("Content loaded! Parsing HTML with BeautifulSoup...")
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
 
-        # --- NEW: Logic to get all day menus ---
+        # ... (The rest of the function remains exactly the same) ...
         all_days_to_parse = []
         current_day_element = soup.find("div", class_="current-day")
         if current_day_element:
@@ -49,10 +49,8 @@ def get_weekly_menu():
         if not all_days_to_parse:
             return "Could not find any daily menu information on the page."
 
-        # --- Loop through each day and build the menu string ---
         weekly_menu_parts = []
         for day_element in all_days_to_parse:
-            # Get the date for the current day block
             date_str = "Unknown Date"
             date_wrapper = day_element.find("div", class_="day-menu-date-wrapper")
             if date_wrapper:
@@ -60,9 +58,8 @@ def get_weekly_menu():
                 if date_span:
                     date_str = date_span.get_text(strip=True)
             
-            weekly_menu_parts.append(f"\n## 📅 {date_str}\n") # Add a header for the day
+            weekly_menu_parts.append(f"\n## 📅 {date_str}\n")
 
-            # Get the meals for the current day block
             menu_content = day_element.find("div", class_="menu-content")
             if not menu_content:
                 weekly_menu_parts.append("_No meal information found for this day._\n")
@@ -81,7 +78,7 @@ def get_weekly_menu():
                             restaurant_span = container.find("span", class_="restaurant-name")
                             if restaurant_span and restaurant_span.get_text(strip=True):
                                 weekly_menu_parts.append(f"- **{restaurant_span.get_text(strip=True)}**\n")
-                        weekly_menu_parts.append("\n") # Add space after the meal
+                        weekly_menu_parts.append("\n")
 
         return "".join(weekly_menu_parts)
 
@@ -91,4 +88,5 @@ def get_weekly_menu():
     finally:
         print("Closing Selenium driver.")
         driver.quit()
+
 
