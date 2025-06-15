@@ -1,0 +1,43 @@
+name: Send Weekly Menu
+
+# Controls when the action will run
+on:
+  # Runs at 23:34 AM UTC every Sunday
+  schedule:
+    - cron: '34 23 * * 0'
+  
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  scrape-and-post:
+    runs-on: ubuntu-latest # Use a standard Linux environment
+
+    steps:
+      # 1. Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. Sets up a Python environment
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 3. Installs the required Python packages
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      # 4. Installs Google Chrome for Selenium
+      - name: Install Google Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+
+      # 5. Runs the Python script
+      - name: Run Scraper and Post to Discord
+        env:
+          # Make the secret available as an environment variable
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python3 send_menu.py
+
