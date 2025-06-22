@@ -81,8 +81,8 @@ def get_weekly_menu():
             # Add the completed string for this day to the main list
             list_of_daily_menus.append("".join(day_parts))
 
-        print("length of list_of_daily_menus: " + len(list_of_daily_menus))
-        print("list_of_daily_menus: " + list_of_daily_menus)
+        print("length of list_of_daily_menus: " + str(len(list_of_daily_menus)))
+        print("list_of_daily_menus: " + list_of_daily_menus.append("".join(day_parts)))
         return list_of_daily_menus
 
     except Exception as e:
