@@ -78,6 +78,7 @@ def get_weekly_menu():
                                 weekly_menu_parts.append(f"- **{restaurant_span.get_text(strip=True)}**\n")
                         weekly_menu_parts.append("\n")
 
+        print("".join(weekly_menu_parts))
         return "".join(weekly_menu_parts)
 
     except Exception as e:
