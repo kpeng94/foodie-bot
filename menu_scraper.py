@@ -10,17 +10,17 @@ from selenium.webdriver.support import expected_conditions as EC
 def get_weekly_menu():
     """
     Scrapes foodie.earth for the entire week's menu.
+    Returns a single, formatted string containing the menu for all available days.
     """
     url = "https://foodie.earth/guest"
     
-    # --- UPDATED: More robust Selenium options ---
+    # Selenium options to run headless in a Linux environment like GitHub Actions
     chrome_options = Options()
-    chrome_options.add_argument("--headless=new") # Use the new, more stable headless mode
+    chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu") # Often recommended for headless
+    chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
-    # --------------------------------------------
 
     driver = webdriver.Chrome(options=chrome_options)
     print("Selenium driver initialized. Navigating to page...")
@@ -29,13 +29,17 @@ def get_weekly_menu():
         driver.get(url)
         print("Waiting for dynamic content to load...")
         wait = WebDriverWait(driver, 20)
-        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "menu-days-list")))
+        
+        # --- MODIFIED LINE ---
+        # Wait for the correct top-level container to appear.
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "weekly-menu-content")))
         
         print("Content loaded! Parsing HTML with BeautifulSoup...")
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
 
-        # ... (The rest of the function remains exactly the same) ...
+        # The rest of the parsing logic remains the same, as it looks for elements
+        # within the main container which has now been correctly identified.
         all_days_to_parse = []
         current_day_element = soup.find("div", class_="current-day")
         if current_day_element:
@@ -88,5 +92,3 @@ def get_weekly_menu():
     finally:
         print("Closing Selenium driver.")
         driver.quit()
-
-
