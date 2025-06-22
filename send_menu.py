@@ -6,7 +6,7 @@ from menu_scraper import get_weekly_menu
 def post_to_discord_webhook():
     """
     Scrapes the weekly menu and posts it to the configured Discord webhook,
-    splitting it into multiple messages if it exceeds the character limit.
+    intelligently grouping days into messages to respect character limits.
     """
     webhook_url = os.environ.get("DISCORD_WEBHOOK_URL")
     if not webhook_url:
@@ -14,36 +14,36 @@ def post_to_discord_webhook():
         return
 
     print("Starting weekly menu scrape...")
-    weekly_menu_string = get_weekly_menu()
+    # Scraper now returns a list of strings, one for each day.
+    daily_menus = get_weekly_menu()
 
-    # Check for errors from the scraper
-    if "error" in weekly_menu_string.lower() or "could not find" in weekly_menu_string.lower():
-        print(f"Scraping failed: {weekly_menu_string}")
+    # Check for errors from the scraper (which will be the only item in the list)
+    if len(daily_menus) == 1 and ("error" in daily_menus[0].lower() or "could not find" in daily_menus[0].lower()):
+        print(f"Scraping failed: {daily_menus[0]}")
         return
 
-    # --- CORRECTED: Logic to split the message into chunks ---
-    # Discord's embed description limit is 4096. We'll use a safer limit.
+    # --- NEW, ROBUST CHUNKING LOGIC ---
+    # This logic combines full day-menus into chunks.
     limit = 4000
-    
-    lines = weekly_menu_string.split('\n')
     message_chunks = []
     current_chunk = ""
 
-    for line in lines:
-        # Check if adding the next line would exceed the limit
-        if len(current_chunk) + len(line) + 1 > limit:
-            # The current chunk is full. Add it to our list.
-            message_chunks.append(current_chunk)
-            # Start the NEXT chunk with the current line.
-            current_chunk = line + "\n"
+    for day_menu in daily_menus:
+        # If adding the next full day menu exceeds the limit...
+        if len(current_chunk) + len(day_menu) > limit:
+            # ...and the current chunk is not empty, save it.
+            if current_chunk:
+                message_chunks.append(current_chunk)
+            # Start the new chunk with the current day's menu.
+            current_chunk = day_menu
         else:
-            # The chunk isn't full yet, so add the line to it.
-            current_chunk += line + "\n"
+            # Otherwise, add the next day's menu to the current chunk.
+            current_chunk += day_menu
     
-    # Add the final remaining chunk to the list after the loop finishes
+    # Add the final chunk to the list after the loop finishes.
     if current_chunk:
         message_chunks.append(current_chunk)
-    # --- End of corrected logic ---
+    # --- End of new chunking logic ---
 
     if not message_chunks:
         print("No content to send after processing.")
@@ -51,7 +51,7 @@ def post_to_discord_webhook():
         
     print(f"Menu has been split into {len(message_chunks)} messages.")
 
-    # Send each chunk as a separate message
+    # Sending loop remains the same
     for i, chunk in enumerate(message_chunks):
         content_header = "Here is the menu for the upcoming week!" if i == 0 else None
         
@@ -78,7 +78,6 @@ def post_to_discord_webhook():
             response = requests.post(webhook_url, json=data)
             response.raise_for_status()
             
-            # Wait 1 second between messages to avoid Discord rate limits
             if i < len(message_chunks) - 1:
                 time.sleep(1)
 

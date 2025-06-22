@@ -9,12 +9,11 @@ from selenium.webdriver.support import expected_conditions as EC
 
 def get_weekly_menu():
     """
-    Scrapes foodie.earth for the entire week's menu.
-    Returns a single, formatted string containing the menu for all available days.
+    Scrapes foodie.earth for the entire week's menu using a simplified and more robust logic.
     """
     url = "https://foodie.earth/guest"
     
-    # Selenium options to run headless in a Linux environment like GitHub Actions
+    # Selenium options setup
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
@@ -29,30 +28,25 @@ def get_weekly_menu():
         driver.get(url)
         print("Waiting for dynamic content to load...")
         wait = WebDriverWait(driver, 20)
-        
-        # --- MODIFIED LINE ---
-        # Wait for the correct top-level container to appear.
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "weekly-menu-content")))
         
         print("Content loaded! Parsing HTML with BeautifulSoup...")
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
 
-        # The rest of the parsing logic remains the same, as it looks for elements
-        # within the main container which has now been correctly identified.
-        all_days_to_parse = []
-        current_day_element = soup.find("div", class_="current-day")
-        if current_day_element:
-            all_days_to_parse.append(current_day_element)
+        # Find the single main container that holds all the days
+        main_container = soup.find("div", class_="weekly-menu-content")
+        if not main_container:
+            return "Could not find the main 'weekly-menu-content' container."
 
-        upcoming_days_container = soup.find("div", class_="upcoming-days")
-        if upcoming_days_container:
-            upcoming_day_elements = upcoming_days_container.find_all("div", class_="day-menu")
-            all_days_to_parse.extend(upcoming_day_elements)
+        # --- SIMPLIFIED LOGIC: Find ALL 'day-menu' divs directly ---
+        all_days_to_parse = main_container.find_all("div", class_="day-menu")
         
         if not all_days_to_parse:
-            return "Could not find any daily menu information on the page."
+            return "Found the main container, but could not find any 'day-menu' divs inside it."
 
+        # --- The rest of the parsing loop remains the same ---
+        print(f"Found {len(all_days_to_parse)} days to parse. Processing now...")
         weekly_menu_parts = []
         for day_element in all_days_to_parse:
             date_str = "Unknown Date"
