@@ -9,12 +9,12 @@ from selenium.webdriver.support import expected_conditions as EC
 
 def get_weekly_menu():
     """
-    Scrapes foodie.earth for the entire week's menu.
+    Scrapes foodie.earth for the entire week's menu using a simplified and robust logic.
     Returns a LIST of strings, where each string is a fully formatted menu for one day.
     """
     url = "https://foodie.earth/guest"
     
-    # --- Selenium Setup ---
+    # Selenium options to run headless in a Linux environment like GitHub Actions
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
@@ -27,27 +27,34 @@ def get_weekly_menu():
 
     try:
         driver.get(url)
+        print("Waiting for dynamic content to load...")
         wait = WebDriverWait(driver, 20)
+        # Wait for the correct top-level container to appear
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "weekly-menu-content")))
         
+        print("Content loaded! Parsing HTML with BeautifulSoup...")
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
 
+        # Find the single main container that holds all the days
         main_container = soup.find("div", class_="weekly-menu-content")
         if not main_container:
             return ["Could not find the main 'weekly-menu-content' container."]
 
+        # Find ALL 'day-menu' divs directly within the main container
         all_days_to_parse = main_container.find_all("div", class_="day-menu")
+        
         if not all_days_to_parse:
             return ["Found main container, but no 'day-menu' divs inside."]
 
-        # --- MODIFIED: Build a list of day strings instead of one giant string ---
+        # Build a list of day strings
         list_of_daily_menus = []
         print(f"Found {len(all_days_to_parse)} days to parse...")
         
         for day_element in all_days_to_parse:
             day_parts = []
             
+            # Get the date for the current day block
             date_str = "Unknown Date"
             date_wrapper = day_element.find("div", class_="day-menu-date-wrapper")
             if date_wrapper:
@@ -57,6 +64,7 @@ def get_weekly_menu():
             
             day_parts.append(f"## 📅 {date_str}\n")
 
+            # Get the meals for the current day block
             menu_content = day_element.find("div", class_="menu-content")
             if not menu_content:
                 day_parts.append("_No meal information found for this day._\n")
@@ -81,8 +89,6 @@ def get_weekly_menu():
             # Add the completed string for this day to the main list
             list_of_daily_menus.append("".join(day_parts))
 
-        print("length of list_of_daily_menus: " + str(len(list_of_daily_menus)))
-        print("list_of_daily_menus: " + "".join(list_of_daily_menus))
         return list_of_daily_menus
 
     except Exception as e:
