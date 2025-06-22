@@ -2,9 +2,9 @@ name: Send Foodie.earth Menu
 
 # Controls when the action will run
 on:
-  # Runs at 17:00 UTC (10:00 AM PDT / 9:00 AM PST) every Sunday and Wednesday
+  # Runs at 16:00 UTC (9:00 AM PDT / 8:00 AM PST) every Sunday and Wednesday
   schedule:
-    - cron: '0 17 * * 0,3' # 0=Sunday, 3=Wednesday
+    - cron: '0 16 * * 0,3' # 0=Sunday, 3=Wednesday
   
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
