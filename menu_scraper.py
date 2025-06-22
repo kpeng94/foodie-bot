@@ -82,7 +82,7 @@ def get_weekly_menu():
             list_of_daily_menus.append("".join(day_parts))
 
         print("length of list_of_daily_menus: " + str(len(list_of_daily_menus)))
-        print("list_of_daily_menus: " + list_of_daily_menus.append("".join(day_parts)))
+        print("list_of_daily_menus: " + "".join(list_of_daily_menus))
         return list_of_daily_menus
 
     except Exception as e:
