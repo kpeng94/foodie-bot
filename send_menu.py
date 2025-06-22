@@ -21,35 +21,40 @@ def post_to_discord_webhook():
         print(f"Scraping failed: {weekly_menu_string}")
         return
 
-    # --- NEW: Logic to split the message into chunks ---
+    # --- CORRECTED: Logic to split the message into chunks ---
     # Discord's embed description limit is 4096. We'll use a safer limit.
     limit = 4000
     
-    # Split the menu string into individual lines
     lines = weekly_menu_string.split('\n')
-    
-    # Group lines into chunks that fit within the limit
     message_chunks = []
     current_chunk = ""
+
     for line in lines:
+        # Check if adding the next line would exceed the limit
         if len(current_chunk) + len(line) + 1 > limit:
+            # The current chunk is full. Add it to our list.
             message_chunks.append(current_chunk)
-            current_chunk = ""
-        current_chunk += line + "\n"
+            # Start the NEXT chunk with the current line.
+            current_chunk = line + "\n"
+        else:
+            # The chunk isn't full yet, so add the line to it.
+            current_chunk += line + "\n"
     
-    # Add the last chunk to the list
+    # Add the final remaining chunk to the list after the loop finishes
     if current_chunk:
         message_chunks.append(current_chunk)
-    # --- End of splitting logic ---
+    # --- End of corrected logic ---
 
+    if not message_chunks:
+        print("No content to send after processing.")
+        return
+        
     print(f"Menu has been split into {len(message_chunks)} messages.")
 
     # Send each chunk as a separate message
     for i, chunk in enumerate(message_chunks):
-        # For the first message, add a "content" header.
         content_header = "Here is the menu for the upcoming week!" if i == 0 else None
         
-        # Adjust the title for subsequent parts
         embed_title = "Upcoming Weekly Menu"
         if len(message_chunks) > 1:
             embed_title += f" (Part {i+1}/{len(message_chunks)})"
@@ -68,10 +73,10 @@ def post_to_discord_webhook():
             "embeds": [embed]
         }
 
-        print(f"Sending chunk {i+1} to Discord webhook...")
+        print(f"Sending chunk {i+1} of {len(message_chunks)} to Discord webhook...")
         try:
             response = requests.post(webhook_url, json=data)
-            response.raise_for_status() # Raise an exception for bad status codes
+            response.raise_for_status()
             
             # Wait 1 second between messages to avoid Discord rate limits
             if i < len(message_chunks) - 1:
@@ -79,9 +84,8 @@ def post_to_discord_webhook():
 
         except requests.exceptions.RequestException as e:
             print(f"Error sending chunk {i+1} to webhook: {e}")
-            # Stop if one chunk fails
             break
-    else: # This 'else' belongs to the 'for' loop, it runs if the loop completes without a 'break'
+    else:
         print("Successfully posted all menu chunks to Discord!")
 
 
