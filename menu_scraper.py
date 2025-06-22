@@ -9,11 +9,12 @@ from selenium.webdriver.support import expected_conditions as EC
 
 def get_weekly_menu():
     """
-    Scrapes foodie.earth for the entire week's menu using a simplified and more robust logic.
+    Scrapes foodie.earth for the entire week's menu.
+    Returns a LIST of strings, where each string is a fully formatted menu for one day.
     """
     url = "https://foodie.earth/guest"
     
-    # Selenium options setup
+    # --- Selenium Setup ---
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
@@ -22,33 +23,31 @@ def get_weekly_menu():
     chrome_options.add_argument("--window-size=1920,1080")
 
     driver = webdriver.Chrome(options=chrome_options)
-    print("Selenium driver initialized. Navigating to page...")
+    print("Selenium driver initialized...")
 
     try:
         driver.get(url)
-        print("Waiting for dynamic content to load...")
         wait = WebDriverWait(driver, 20)
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "weekly-menu-content")))
         
-        print("Content loaded! Parsing HTML with BeautifulSoup...")
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
 
-        # Find the single main container that holds all the days
         main_container = soup.find("div", class_="weekly-menu-content")
         if not main_container:
-            return "Could not find the main 'weekly-menu-content' container."
+            return ["Could not find the main 'weekly-menu-content' container."]
 
-        # --- SIMPLIFIED LOGIC: Find ALL 'day-menu' divs directly ---
         all_days_to_parse = main_container.find_all("div", class_="day-menu")
-        
         if not all_days_to_parse:
-            return "Found the main container, but could not find any 'day-menu' divs inside it."
+            return ["Found main container, but no 'day-menu' divs inside."]
 
-        # --- The rest of the parsing loop remains the same ---
-        print(f"Found {len(all_days_to_parse)} days to parse. Processing now...")
-        weekly_menu_parts = []
+        # --- MODIFIED: Build a list of day strings instead of one giant string ---
+        list_of_daily_menus = []
+        print(f"Found {len(all_days_to_parse)} days to parse...")
+        
         for day_element in all_days_to_parse:
+            day_parts = []
+            
             date_str = "Unknown Date"
             date_wrapper = day_element.find("div", class_="day-menu-date-wrapper")
             if date_wrapper:
@@ -56,34 +55,37 @@ def get_weekly_menu():
                 if date_span:
                     date_str = date_span.get_text(strip=True)
             
-            weekly_menu_parts.append(f"\n## 📅 {date_str}\n")
+            day_parts.append(f"## 📅 {date_str}\n")
 
             menu_content = day_element.find("div", class_="menu-content")
             if not menu_content:
-                weekly_menu_parts.append("_No meal information found for this day._\n")
+                day_parts.append("_No meal information found for this day._\n")
+                list_of_daily_menus.append("".join(day_parts))
                 continue
 
             meals_to_find = {"Lunch 🥗": "lunch", "Early Dinner 🌅": "earlyDinner", "Dinner 🌙": "dinner"}
             for meal_name, meal_class in meals_to_find.items():
                 meal_section = menu_content.find("div", class_=f"menu-meals {meal_class}")
                 if meal_section:
-                    weekly_menu_parts.append(f"### {meal_name}\n")
+                    day_parts.append(f"### {meal_name}\n")
                     restaurant_containers = meal_section.select("div.meal-list div.meal-menu-container")
                     if not restaurant_containers:
-                        weekly_menu_parts.append("_No restaurants listed for this meal._\n")
+                        day_parts.append("_No restaurants listed for this meal._\n")
                     else:
                         for container in restaurant_containers:
                             restaurant_span = container.find("span", class_="restaurant-name")
                             if restaurant_span and restaurant_span.get_text(strip=True):
-                                weekly_menu_parts.append(f"- **{restaurant_span.get_text(strip=True)}**\n")
-                        weekly_menu_parts.append("\n")
+                                day_parts.append(f"- **{restaurant_span.get_text(strip=True)}**\n")
+                        day_parts.append("\n")
+            
+            # Add the completed string for this day to the main list
+            list_of_daily_menus.append("".join(day_parts))
 
-        print("".join(weekly_menu_parts))
-        return "".join(weekly_menu_parts)
+        return list_of_daily_menus
 
     except Exception as e:
         print(f"An error occurred during scraping: {e}")
-        return f"An error occurred during scraping: {e}"
+        return [f"An error occurred during scraping: {e}"]
     finally:
         print("Closing Selenium driver.")
         driver.quit()
