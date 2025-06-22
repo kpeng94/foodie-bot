@@ -21,8 +21,7 @@ def post_to_discord_webhook():
         print(f"Scraping failed: {all_daily_menus[0]}")
         return
 
-    # --- NEW, SIMPLIFIED LOGIC: Take the first 4 days ---
-    # Python's list slicing makes this easy. It won't error if there are fewer than 4 items.
+    # Take the first 4 days from the list.
     menus_to_send = all_daily_menus[:4]
     
     if not menus_to_send:
@@ -30,18 +29,16 @@ def post_to_discord_webhook():
         return
 
     final_menu_string = "".join(menus_to_send)
-    # --- End of new logic ---
-
-    # Truncate if the message is too long (a safety net, though less likely now)
+    
+    # Truncate if the message is too long (safety net)
     if len(final_menu_string) > 4096:
         final_menu_string = final_menu_string[:4090] + "\n\n... (message truncated)"
 
-    # Format the message for the webhook
+    # --- MODIFIED: The "footer" section has been removed from the embed below ---
     embed = {
         "title": "Upcoming 4-Day Menu",
         "description": final_menu_string,
         "color": 7506394, # A nice blue color
-        "footer": { "text": "Menu automatically updated" }
     }
     
     data = {
